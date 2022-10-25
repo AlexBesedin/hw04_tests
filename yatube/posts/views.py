@@ -83,4 +83,6 @@ def post_edit(request, post_id, template="posts/create_post.html"):
         post.save()
         return redirect("posts:post_detail", post_id=post_id)
     form = PostForm(instance=post)
-    return render(request, template, {"post": post, "form": form, "is_edit": True})
+    return render(request, template,
+                  {"post": post, "form": form, "is_edit": True}
+                  )

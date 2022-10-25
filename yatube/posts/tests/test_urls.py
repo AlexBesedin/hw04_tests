@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from django.test import Client, TestCase
+from django.urls import reverse
 
 from ..models import Group, Post, User
 
@@ -9,8 +10,7 @@ class URLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create(username="NoName")  # Создаем пользователя
-        # Создадим запись в БД для проверки доступности адреса group/test-slug/
+        cls.user = User.objects.create(username="NoName")
         cls.group = Group.objects.create(
             title="Тестовая группа",
             slug="test-slug",
@@ -23,32 +23,39 @@ class URLTests(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()  # Создаем неавторизованный клиент
-        self.authorized_client = Client()  # Создаем авторизированного клиента
-        self.authorized_client.force_login(self.user)  # Авторизуем пользователя
+        self.guest_client = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
 
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_url_names = {
-            "posts/index.html": "/",
-            "posts/group_list.html": f"/group/{URLTests.group.slug}/",
-            "posts/profile.html": f"/profile/{URLTests.user.username}/",
-            "posts/post_detail.html": f"/posts/{URLTests.post.id}/",
-            "posts/create_post.html": f"/posts/{URLTests.post.id}/edit/",
-            "posts/create_post.html": "/create/",
+            reverse('posts:index'): ['posts/index.html', HTTPStatus.OK],
+            reverse('posts:group_list', kwargs={'slug': self.group.slug}):
+                ['posts/group_list.html', HTTPStatus.OK],
+            reverse('posts:profile', kwargs={'username': self.user.username}):
+                ['posts/profile.html', HTTPStatus.OK],
+            reverse('posts:post_detail', kwargs={'post_id': self.post.pk}):
+                ['posts/post_detail.html', HTTPStatus.OK],
+            reverse('posts:post_create'):
+                ['posts/create_post.html', HTTPStatus.FOUND],
+            reverse('posts:post_edit', kwargs={'post_id': self.post.pk}):
+                ['posts/create_post.html', HTTPStatus.FOUND],
         }
 
-        for template, address in templates_url_names.items():
+        for address, template in templates_url_names.items():
             with self.subTest(address=address):
                 response = self.authorized_client.get(address)
-                self.assertTemplateUsed(response, template)
+                self.assertTemplateUsed(response, template[0])
 
     def test_posts_post_id_edit_url_exists_at_author(self):
         """Страница /posts/post_id/edit/ доступна только автору."""
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(URLTests.user)
-        response = self.authorized_client.get(f"/posts/{URLTests.post.id}/edit/")
+        response = self.authorized_client.get(
+            f"/posts/{URLTests.post.id}/edit/"
+        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_create_url_exists_at_desired_location_authorized(self):
