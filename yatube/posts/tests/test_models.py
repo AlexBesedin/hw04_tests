@@ -15,7 +15,7 @@ class PostModelTest(TestCase):
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text="Тестовый пост",
+            text="Тестовый пост, который никто не прочитает",
         )
 
     def setUp(self):

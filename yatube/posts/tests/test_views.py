@@ -1,11 +1,8 @@
 from django import forms
-from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
 from ..models import Group, Post, User
-
-User = get_user_model()
 
 
 class PostsPagesTests(TestCase):
@@ -140,6 +137,7 @@ class PaginatorViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.PAGE_NUBMER = 13
         cls.user = User.objects.create_user(username="AnonNoName")
         cls.group = Group.objects.create(
             title="Тестовый заголовок группы2",
@@ -153,7 +151,7 @@ class PaginatorViewsTest(TestCase):
                     author=cls.user,
                     group=cls.group
                 )
-                for i in range(0, 13)
+                for i in range(cls.PAGE_NUBMER)
             ]
         )
 
@@ -162,6 +160,7 @@ class PaginatorViewsTest(TestCase):
         self.authorized_client = Client()
 
     def test_first_page_contains_ten_records(self):
+        NUMBER_POSTS = 10
         templates_pages_names = {
             "posts/index.html": reverse("posts:index"),
             "posts/group_list.html": reverse(
@@ -174,9 +173,12 @@ class PaginatorViewsTest(TestCase):
         for template, reverse_name in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
                 response = self.client.get(reverse_name)
-                self.assertEqual(len(response.context["page_obj"]), 10)
+                self.assertEqual(len(response.context["page_obj"]),
+                                 NUMBER_POSTS
+                                 )
 
     def test_second_page_contains_three_records(self):
+        NUMBER_POSTS = 3
         templates_pages_names = {
             "posts/index.html": reverse("posts:index") + "?page=2",
             "posts/group_list.html": reverse(
@@ -191,4 +193,6 @@ class PaginatorViewsTest(TestCase):
         for template, reverse_name in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
                 response = self.client.get(reverse_name)
-                self.assertEqual(len(response.context["page_obj"]), 3),
+                self.assertEqual(len(response.context["page_obj"]),
+                                 NUMBER_POSTS
+                                 ),
